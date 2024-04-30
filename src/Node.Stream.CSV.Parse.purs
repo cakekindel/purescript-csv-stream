@@ -1,4 +1,4 @@
-module Node.Stream.CSV.Readable where
+module Node.Stream.CSV.Parse where
 
 import Prelude
 
@@ -23,6 +23,7 @@ import Effect.Uncurried (mkEffectFn1)
 import Foreign (Foreign, unsafeToForeign)
 import Foreign.Object (Object)
 import Foreign.Object as Object
+import Node.Encoding (Encoding(..))
 import Node.EventEmitter (EventHandle(..))
 import Node.EventEmitter as Event
 import Node.EventEmitter.UtilTypes (EventHandle1)
@@ -74,8 +75,17 @@ type Config r =
   | r
   )
 
-make :: forall @r rl config missing extra. ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> Effect (CSVParser r ())
+-- | Create a CSVParser
+make :: forall @r rl @config @missing @extra. RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> Effect (CSVParser r ())
 make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: true, cast: false, cast_date: false}) <<< recordToForeign
+
+-- | Synchronously parse a CSV string
+parse :: forall @r rl @config missing extra. RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> String -> Aff (Array { | r })
+parse config csv = do
+  stream <- liftEffect $ make @r @config @missing @extra config
+  void $ liftEffect $ Stream.writeString stream UTF8 csv
+  liftEffect $ Stream.end stream
+  readAll stream
 
 -- | Reads a parsed record from the stream.
 -- |
@@ -118,4 +128,3 @@ foreign import readImpl :: forall r. Stream r -> Effect (Nullable (Array String)
 -- | FFI
 recordToForeign :: forall r. Record r -> Object Foreign
 recordToForeign = unsafeCoerce
-
