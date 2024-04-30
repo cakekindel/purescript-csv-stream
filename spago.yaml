@@ -10,7 +10,6 @@ package:
     strict: true
     pedanticPackages: true
   dependencies:
-    - node-buffer
     - aff: ">=7.1.0 <8.0.0"
     - arrays: ">=7.3.0 <8.0.0"
     - bifunctors: ">=6.0.0 <7.0.0"
@@ -25,6 +24,7 @@ package:
     - lists: ">=7.0.0 <8.0.0"
     - maybe: ">=6.0.0 <7.0.0"
     - newtype: ">=5.0.0 <6.0.0"
+    - node-buffer: ">=9.0.0 <10.0.0"
     - node-event-emitter: ">=3.0.0 <4.0.0"
     - node-streams: ">=9.0.0 <10.0.0"
     - nullable: ">=6.0.0 <7.0.0"
