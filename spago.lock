@@ -10,6 +10,7 @@ workspace:
         - effect: ">=4.0.0 <5.0.0"
         - either: ">=6.1.0 <7.0.0"
         - exceptions: ">=6.0.0 <7.0.0"
+        - filterable
         - foldable-traversable: ">=6.0.0 <7.0.0"
         - foreign: ">=7.0.0 <8.0.0"
         - foreign-object: ">=4.1.0 <5.0.0"
@@ -51,6 +52,7 @@ workspace:
         - enums
         - exceptions
         - exists
+        - filterable
         - fixed-points
         - foldable-traversable
         - foreign
@@ -268,6 +270,17 @@ packages:
     integrity: sha256-A0JQHpTfo1dNOj9U5/Fd3xndlRSE0g2IQWOGor2yXn8=
     dependencies:
       - unsafe-coerce
+  filterable:
+    type: registry
+    version: 5.0.0
+    integrity: sha256-cCojJHRnTmpY1j1kegI4CFwghdQ2Fm/8dzM8IlC+lng=
+    dependencies:
+      - arrays
+      - either
+      - foldable-traversable
+      - identity
+      - lists
+      - ordered-collections
   fixed-points:
     type: registry
     version: 7.0.0

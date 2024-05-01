@@ -7,8 +7,10 @@ import Control.Monad.Except (Except)
 import Data.Array as Array
 import Data.CSV (class ReadCSV, class WriteCSV, readCSV, writeCSV)
 import Data.List.NonEmpty (NonEmptyList)
+import Data.Map (Map)
+import Data.Map as Map
 import Data.Maybe (fromMaybe)
-import Data.Symbol (class IsSymbol)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Foreign (ForeignError(..))
 import Prim.Row (class Cons, class Lacks)
 import Prim.RowList (class RowToList, Cons, Nil, RowList)
@@ -31,14 +33,17 @@ instance WriteCSVRecord () Nil where
 
 class ReadCSVRecord :: Row Type -> RowList Type -> Constraint
 class RowToList r rl <= ReadCSVRecord r rl | rl -> r where
-  readCSVRecord :: Array String -> Except (NonEmptyList ForeignError) { | r }
+  readCSVRecord :: Map String Int -> Array String -> Except (NonEmptyList ForeignError) { | r }
 
 instance (RowToList r (Cons k v tailrl), IsSymbol k, ReadCSV v, Lacks k tail, Cons k v tail r, ReadCSVRecord tail tailrl) => ReadCSVRecord r (Cons k v tailrl) where
-  readCSVRecord vals = do
-    valraw <- liftMaybe (pure $ ForeignError "unexpected end of record") $ Array.head vals
+  readCSVRecord cols vals = do
+    let
+      k = reflectSymbol (Proxy @k)
+    pos <- liftMaybe (pure $ ForeignError $ "row too long; did not expect value " <> k) $ Map.lookup k cols
+    valraw <- liftMaybe (pure $ ForeignError "unexpected end of record") $ Array.index vals pos
     val <- readCSV @v valraw
-    tail <- readCSVRecord @tail @tailrl (fromMaybe [] $ Array.tail vals)
+    tail <- readCSVRecord @tail @tailrl cols (fromMaybe [] $ Array.deleteAt pos vals)
     pure $ Record.insert (Proxy @k) val tail
 
 instance ReadCSVRecord () Nil where
-  readCSVRecord _ = pure {}
+  readCSVRecord _ _ = pure {}

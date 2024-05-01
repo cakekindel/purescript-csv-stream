@@ -2,15 +2,20 @@ module Node.Stream.CSV.Parse where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Monad.Error.Class (liftEither)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
 import Control.Monad.Rec.Class (whileJust)
 import Control.Monad.ST.Global as ST
+import Control.Monad.Trans.Class (lift)
+import Data.Array as Array
 import Data.Array.ST as Array.ST
 import Data.Bifunctor (lmap)
 import Data.CSV.Record (class ReadCSVRecord, readCSVRecord)
 import Data.Either (Either(..))
+import Data.Filterable (filter)
+import Data.Map (Map)
 import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
@@ -22,6 +27,7 @@ import Effect.Exception (error)
 import Effect.Uncurried (mkEffectFn1)
 import Foreign (Foreign, unsafeToForeign)
 import Foreign.Object (Object)
+import Data.Map as Map
 import Foreign.Object as Object
 import Node.Encoding (Encoding(..))
 import Node.EventEmitter (EventHandle(..))
@@ -107,7 +113,8 @@ foreach stream cb = whileJust do
 read :: forall @r rl a. RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> Effect (Maybe { | r })
 read stream = runMaybeT do
   raw :: Array String <- MaybeT $ Nullable.toMaybe <$> readImpl stream
-  liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl raw
+  cols <- MaybeT $ getOrInitColumnsMap stream
+  liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols raw
 
 -- | Collect all parsed records into an array
 readAll :: forall @r rl a. RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> Aff (Array { | r })
@@ -125,6 +132,30 @@ foreign import makeImpl :: forall r. Foreign -> Effect (Stream r)
 
 -- | FFI
 foreign import readImpl :: forall r. Stream r -> Effect (Nullable (Array String))
+
+-- | FFI
+foreign import columnsArrayImpl :: forall r. Stream r -> Effect (Array String)
+
+-- | FFI
+foreign import columnsMapImpl :: forall r. Stream r -> Effect (Nullable (Map String Int))
+
+-- | FFI
+foreign import setColumnsMapImpl :: forall r. Stream r -> Map String Int -> Effect Unit
+
+-- | FFI
+getOrInitColumnsMap :: forall r x. CSVParser r x -> Effect (Maybe (Map String Int))
+getOrInitColumnsMap s = runMaybeT do
+  cols :: Array String <- MaybeT $ filter (not <<< Array.null) <$> Just <$> columnsArrayImpl s
+  let
+    get = MaybeT $ Nullable.toMaybe <$> columnsMapImpl s
+    init = do
+      let
+        ixs = Array.range 0 (Array.length cols - 1)
+        assoc = Array.zip cols ixs
+        map = Map.fromFoldable assoc
+      lift $ setColumnsMapImpl s map
+      pure map
+  get <|> init
 
 -- | FFI
 recordToForeign :: forall r. Record r -> Object Foreign
