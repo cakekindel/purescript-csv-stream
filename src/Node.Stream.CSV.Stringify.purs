@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Monad.Rec.Class (whileJust)
 import Control.Monad.ST.Global as ST
+import Data.Array as Array
 import Data.Array.ST as Array.ST
 import Data.CSV.Record (class WriteCSVRecord, writeCSVRecord)
 import Data.Either (Either(..), blush)
@@ -22,6 +23,8 @@ import Node.Stream (Read, Stream, Write)
 import Node.Stream as Stream
 import Prim.Row (class Union)
 import Prim.RowList (class RowToList)
+import Record.Extra (class Keys, keys)
+import Type.Prelude (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 data CSVWrite
@@ -40,7 +43,6 @@ type CSVStringifier a r = Stream (read :: Read, write :: Write, csv :: CSVWrite 
 -- | https://csv.js.org/stringify/options/
 type Config r =
   ( bom :: Boolean
-  , group_columns_by_name :: Boolean
   , delimiter :: String
   , record_delimiter :: String
   , escape :: String
@@ -61,11 +63,11 @@ recordToForeign :: forall r. Record r -> Object Foreign
 recordToForeign = unsafeCoerce
 
 -- | Create a CSVStringifier
-make :: forall @r rl @config @missing @extra. RowToList r rl => WriteCSVRecord r rl => Union config missing (Config extra) => { | config } -> Effect (CSVStringifier r ())
-make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: true, cast: false, cast_date: false}) <<< recordToForeign
+make :: forall @r rl @config @missing @extra. Keys rl => RowToList r rl => WriteCSVRecord r rl => Union config missing (Config extra) => { | config } -> Effect (CSVStringifier r ())
+make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: Array.fromFoldable $ keys (Proxy @r)}) <<< recordToForeign
 
 -- | Synchronously stringify a collection of records
-stringify :: forall @r rl f @config missing extra. Foldable f => RowToList r rl => WriteCSVRecord r rl => Union config missing (Config extra) => { | config } -> f { | r } -> Aff String
+stringify :: forall @r rl f @config missing extra. Keys rl => Foldable f => RowToList r rl => WriteCSVRecord r rl => Union config missing (Config extra) => { | config } -> f { | r } -> Aff String
 stringify config records = do
   stream <- liftEffect $ make @r @config @missing @extra config
   liftEffect $ for_ records \r -> write stream r

@@ -25,6 +25,7 @@ workspace:
         - precise-datetime: ">=7.0.0 <8.0.0"
         - prelude: ">=6.0.1 <7.0.0"
         - record: ">=4.0.0 <5.0.0"
+        - record-extra
         - st: ">=6.2.0 <7.0.0"
         - strings: ">=6.0.1 <7.0.0"
         - tailrec: ">=6.1.0 <7.0.0"
@@ -82,6 +83,7 @@ workspace:
         - prelude
         - profunctor
         - record
+        - record-extra
         - refs
         - safe-coerce
         - st
@@ -641,6 +643,18 @@ packages:
       - functions
       - prelude
       - unsafe-coerce
+  record-extra:
+    type: registry
+    version: 5.0.1
+    integrity: sha256-7vnREK2fpGJ7exswSeA9UpZFuU+UXRt3SA7AFUldT/Y=
+    dependencies:
+      - arrays
+      - functions
+      - lists
+      - prelude
+      - record
+      - tuples
+      - typelevel-prelude
   refs:
     type: registry
     version: 6.0.0
