@@ -87,6 +87,18 @@ parse config csv = do
   liftEffect $ Stream.end stream
   readAll stream
 
+-- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
+foreach :: forall @r rl x. RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> Aff Unit) -> Aff Unit
+foreach stream cb = whileJust do
+  isReadable <- liftEffect $ Stream.readable stream
+  when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
+  whileJust do
+    r <- liftEffect $ read @r stream
+    for_ r cb
+    pure $ void r
+  isClosed <- liftEffect $ Stream.closed stream
+  pure $ if isClosed then Nothing else Just unit
+
 -- | Reads a parsed record from the stream.
 -- |
 -- | Returns `Nothing` when either:
@@ -101,18 +113,7 @@ read stream = runMaybeT do
 readAll :: forall @r rl a. RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> Aff (Array { | r })
 readAll stream = do
   records <- liftEffect $ ST.toEffect $ Array.ST.new
-
-  whileJust do
-    isReadable <- liftEffect $ Stream.readable stream
-    when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
-    liftEffect $ whileJust do
-      r <- read @r stream
-      for_ r \r' -> ST.toEffect $ Array.ST.push r' records
-      pure $ void r
-
-    isClosed <- liftEffect $ Stream.closed stream
-    pure $ if isClosed then Nothing else Just unit
-
+  foreach stream $ void <<< liftEffect <<< ST.toEffect <<< flip Array.ST.push records
   liftEffect $ ST.toEffect $ Array.ST.unsafeFreeze records
 
 -- | `data` event. Emitted when a CSV record has been parsed.

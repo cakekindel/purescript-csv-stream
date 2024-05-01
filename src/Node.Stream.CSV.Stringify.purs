@@ -79,22 +79,22 @@ stringify config records = do
 write :: forall @r rl a. RowToList r rl => WriteCSVRecord r rl => CSVStringifier r a -> { | r } -> Effect Unit
 write s = writeImpl s <<< writeCSVRecord @r @rl
 
+-- | Loop until the stream is closed, invoking the callback with each chunk of stringified CSV text.
+foreach :: forall r x. CSVStringifier r x -> (String -> Aff Unit) -> Aff Unit
+foreach stream cb = whileJust do
+  isReadable <- liftEffect $ Stream.readable stream
+  when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
+  whileJust do
+    s <- liftEffect $ (join <<< map blush) <$> Stream.readEither stream
+    for_ s cb
+    pure $ void s
+  isClosed <- liftEffect $ Stream.closed stream
+  pure $ if isClosed then Nothing else Just unit
+
 -- | Read the stringified chunks until end-of-stream, returning the entire CSV string.
 readAll :: forall r a. CSVStringifier r a -> Aff String
 readAll stream = do
   chunks <- liftEffect $ ST.toEffect $ Array.ST.new
-
-  whileJust do
-    isReadable <- liftEffect $ Stream.readable stream
-    when (not isReadable) $ makeAff \res -> mempty <* flip (Event.on Stream.readableH) stream $ res $ Right unit
-
-    liftEffect $ whileJust do
-      s <- (join <<< map blush) <$> Stream.readEither stream
-      for_ s \s' -> ST.toEffect $ Array.ST.push s' chunks
-      pure $ void s
-
-    isClosed <- liftEffect $ Stream.closed stream
-    pure $ if isClosed then Nothing else Just unit
-
+  foreach stream $ void <<< liftEffect <<< ST.toEffect <<< flip Array.ST.push chunks
   chunks' <- liftEffect $ ST.toEffect $ Array.ST.unsafeFreeze chunks
   pure $ fold chunks'
