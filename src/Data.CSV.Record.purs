@@ -42,7 +42,7 @@ instance (RowToList r (Cons k v tailrl), IsSymbol k, ReadCSV v, Lacks k tail, Co
     pos <- liftMaybe (pure $ ForeignError $ "row too long; did not expect value " <> k) $ Map.lookup k cols
     let valraw = fromMaybe "" $ Array.index vals pos
     val <- readCSV @v valraw
-    tail <- readCSVRecord @tail @tailrl cols (fromMaybe [] $ Array.deleteAt pos vals)
+    tail <- readCSVRecord @tail @tailrl cols vals
     pure $ Record.insert (Proxy @k) val tail
 
 instance ReadCSVRecord () Nil where
