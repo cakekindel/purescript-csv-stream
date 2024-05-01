@@ -9,11 +9,12 @@ import Data.Int as Int
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
+import Data.Number (fromString) as Number
 import Data.Number.Format (toString) as Number
 import Data.PreciseDateTime (fromDateTime, fromRFC3339String, toDateTimeLossy, toRFC3339String)
 import Data.RFC3339String (RFC3339String(..))
 import Data.String as String
-import Foreign (ForeignError(..), readInt, readNumber, unsafeToForeign)
+import Foreign (ForeignError(..))
 
 class ReadCSV a where
   readCSV :: String -> Except (NonEmptyList ForeignError) a
@@ -22,10 +23,10 @@ class WriteCSV a where
   writeCSV :: a -> String
 
 instance ReadCSV Int where
-  readCSV = readInt <<< unsafeToForeign
+  readCSV s = liftMaybe (pure $ ForeignError $ "invalid integer: " <> s) $ Int.fromString s
 
 instance ReadCSV Number where
-  readCSV = readNumber <<< unsafeToForeign
+  readCSV s = liftMaybe (pure $ ForeignError $ "invalid number: " <> s) $ Number.fromString s
 
 instance ReadCSV String where
   readCSV = pure
