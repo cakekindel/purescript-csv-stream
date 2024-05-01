@@ -77,7 +77,7 @@ type Config r =
 
 -- | Create a CSVParser
 make :: forall @r rl @config @missing @extra. RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> Effect (CSVParser r ())
-make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: true, cast: false, cast_date: false}) <<< recordToForeign
+make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: false, cast: false, cast_date: false}) <<< recordToForeign
 
 -- | Synchronously parse a CSV string
 parse :: forall @r rl @config missing extra. RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> String -> Aff (Array { | r })
