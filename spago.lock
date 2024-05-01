@@ -6,7 +6,7 @@ workspace:
         - aff: ">=7.1.0 <8.0.0"
         - arrays: ">=7.3.0 <8.0.0"
         - bifunctors: ">=6.0.0 <7.0.0"
-        - control
+        - control: ">=6.0.0 <7.0.0"
         - datetime: ">=6.1.0 <7.0.0"
         - effect: ">=4.0.0 <5.0.0"
         - either: ">=6.1.0 <7.0.0"
@@ -24,7 +24,7 @@ workspace:
         - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - numbers: ">=9.0.1 <10.0.0"
-        - ordered-collections
+        - ordered-collections: ">=3.2.0 <4.0.0"
         - precise-datetime: ">=7.0.0 <8.0.0"
         - prelude: ">=6.0.1 <7.0.0"
         - record: ">=4.0.0 <5.0.0"

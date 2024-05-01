@@ -112,8 +112,8 @@ foreach stream cb = whileJust do
 -- | - All records have been processed (`Node.Stream.closed` is `true`)
 read :: forall @r rl a. RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> Effect (Maybe { | r })
 read stream = runMaybeT do
-  raw :: Array String <- MaybeT $ Nullable.toMaybe <$> readImpl stream
   cols <- MaybeT $ getOrInitColumnsMap stream
+  raw :: Array String <- MaybeT $ Nullable.toMaybe <$> readImpl stream
   liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols raw
 
 -- | Collect all parsed records into an array
