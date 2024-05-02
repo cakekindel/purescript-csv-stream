@@ -10,8 +10,8 @@ class ParserWithColumns extends Parser {
 /** @type {(s: import('csv-parse').Options) => () => ParserWithColumns} */
 export const makeImpl = c => () => {
   const parser = new ParserWithColumns(c)
-  parser.once('data', chunk => {
-    parser.columns = chunk;
+  parser.once('readable', () => {
+    parser.columns = parser.read();
   })
   return parser
 }
