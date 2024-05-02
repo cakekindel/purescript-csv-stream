@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Control.Monad.Error.Class (liftEither)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
-import Control.Monad.Rec.Class (whileJust)
+import Control.Monad.Rec.Class (class MonadRec, whileJust)
 import Control.Monad.ST.Global as ST
 import Control.Monad.Trans.Class (lift)
 import Data.Array as Array
@@ -16,18 +16,19 @@ import Data.CSV.Record (class ReadCSVRecord, readCSVRecord)
 import Data.Either (Either(..))
 import Data.Filterable (filter)
 import Data.Map (Map)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Traversable (for_)
 import Effect (Effect)
-import Effect.Aff (Aff, makeAff)
+import Effect.Aff (makeAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
 import Effect.Uncurried (mkEffectFn1)
 import Foreign (Foreign, unsafeToForeign)
 import Foreign.Object (Object)
-import Data.Map as Map
 import Foreign.Object as Object
 import Node.Encoding (Encoding(..))
 import Node.EventEmitter (EventHandle(..))
@@ -86,7 +87,7 @@ make :: forall @r rl @config @missing @extra. RowToList r rl => ReadCSVRecord r 
 make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: false, cast: false, cast_date: false}) <<< recordToForeign
 
 -- | Synchronously parse a CSV string
-parse :: forall @r rl @config missing extra. RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> String -> Aff (Array { | r })
+parse :: forall @r rl @config missing extra m. MonadAff m => MonadRec m => RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> String -> m (Array { | r })
 parse config csv = do
   stream <- liftEffect $ make @r @config @missing @extra config
   void $ liftEffect $ Stream.writeString stream UTF8 csv
@@ -94,10 +95,10 @@ parse config csv = do
   readAll stream
 
 -- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
-foreach :: forall @r rl x. RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> Aff Unit) -> Aff Unit
+foreach :: forall @r rl x m. MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> m Unit) -> m Unit
 foreach stream cb = whileJust do
   isReadable <- liftEffect $ Stream.readable stream
-  when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
+  liftAff $ when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
   whileJust do
     r <- liftEffect $ read @r stream
     for_ r cb
@@ -117,7 +118,7 @@ read stream = runMaybeT do
   liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols raw
 
 -- | Collect all parsed records into an array
-readAll :: forall @r rl a. RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> Aff (Array { | r })
+readAll :: forall @r rl a m. MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> m (Array { | r })
 readAll stream = do
   records <- liftEffect $ ST.toEffect $ Array.ST.new
   foreach stream $ void <<< liftEffect <<< ST.toEffect <<< flip Array.ST.push records

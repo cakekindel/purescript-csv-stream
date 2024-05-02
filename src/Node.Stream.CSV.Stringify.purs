@@ -2,7 +2,7 @@ module Node.Stream.CSV.Stringify where
 
 import Prelude
 
-import Control.Monad.Rec.Class (whileJust)
+import Control.Monad.Rec.Class (class MonadRec, whileJust)
 import Control.Monad.ST.Global as ST
 import Data.Array as Array
 import Data.Array.ST as Array.ST
@@ -13,7 +13,8 @@ import Data.Maybe (Maybe(..))
 import Data.String.Regex (Regex)
 import Data.Traversable (for_)
 import Effect (Effect)
-import Effect.Aff (Aff, makeAff)
+import Effect.Aff (makeAff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Foreign (Foreign, unsafeToForeign)
 import Foreign.Object (Object)
@@ -67,7 +68,7 @@ make :: forall @r rl @config @missing @extra. Keys rl => RowToList r rl => Write
 make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: Array.fromFoldable $ keys (Proxy @r)}) <<< recordToForeign
 
 -- | Synchronously stringify a collection of records
-stringify :: forall @r rl f @config missing extra. Keys rl => Foldable f => RowToList r rl => WriteCSVRecord r rl => Union config missing (Config extra) => { | config } -> f { | r } -> Aff String
+stringify :: forall @r rl f m @config missing extra. MonadAff m => MonadRec m => Keys rl => Foldable f => RowToList r rl => WriteCSVRecord r rl => Union config missing (Config extra) => { | config } -> f { | r } -> m String
 stringify config records = do
   stream <- liftEffect $ make @r @config @missing @extra config
   liftEffect $ for_ records \r -> write stream r
@@ -82,10 +83,10 @@ write :: forall @r rl a. RowToList r rl => WriteCSVRecord r rl => CSVStringifier
 write s = writeImpl s <<< writeCSVRecord @r @rl
 
 -- | Loop until the stream is closed, invoking the callback with each chunk of stringified CSV text.
-foreach :: forall r x. CSVStringifier r x -> (String -> Aff Unit) -> Aff Unit
+foreach :: forall m r x. MonadAff m => MonadRec m => CSVStringifier r x -> (String -> m Unit) -> m Unit
 foreach stream cb = whileJust do
   isReadable <- liftEffect $ Stream.readable stream
-  when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
+  liftAff $ when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
   whileJust do
     s <- liftEffect $ (join <<< map blush) <$> Stream.readEither stream
     for_ s cb
@@ -94,7 +95,7 @@ foreach stream cb = whileJust do
   pure $ if isClosed then Nothing else Just unit
 
 -- | Read the stringified chunks until end-of-stream, returning the entire CSV string.
-readAll :: forall r a. CSVStringifier r a -> Aff String
+readAll :: forall r a m. MonadAff m => MonadRec m => CSVStringifier r a -> m String
 readAll stream = do
   chunks <- liftEffect $ ST.toEffect $ Array.ST.new
   foreach stream $ void <<< liftEffect <<< ST.toEffect <<< flip Array.ST.push chunks
