@@ -22,7 +22,7 @@ import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Traversable (for_)
 import Effect (Effect)
-import Effect.Aff (makeAff)
+import Effect.Aff (Canceler(..), makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
@@ -98,7 +98,9 @@ parse config csv = do
 foreach :: forall @r rl x m. MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> m Unit) -> m Unit
 foreach stream cb = whileJust do
   isReadable <- liftEffect $ Stream.readable stream
-  liftAff $ when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
+  liftAff $ when (not isReadable) $ makeAff \res -> do
+    stop <- flip (Event.once Stream.readableH) stream $ res $ Right unit
+    pure $ Canceler $ const $ liftEffect stop
   whileJust do
     r <- liftEffect $ read @r stream
     for_ r cb

@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.String.Regex (Regex)
 import Data.Traversable (for_)
 import Effect (Effect)
-import Effect.Aff (makeAff)
+import Effect.Aff (Canceler(..), makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Foreign (Foreign, unsafeToForeign)
@@ -86,7 +86,9 @@ write s = writeImpl s <<< writeCSVRecord @r @rl
 foreach :: forall m r x. MonadAff m => MonadRec m => CSVStringifier r x -> (String -> m Unit) -> m Unit
 foreach stream cb = whileJust do
   isReadable <- liftEffect $ Stream.readable stream
-  liftAff $ when (not isReadable) $ makeAff \res -> mempty <* flip (Event.once Stream.readableH) stream $ res $ Right unit
+  liftAff $ when (not isReadable) $ makeAff \res -> do
+    stop <- flip (Event.once Stream.readableH) stream $ res $ Right unit
+    pure $ Canceler $ const $ liftEffect stop
   whileJust do
     s <- liftEffect $ (join <<< map blush) <$> Stream.readEither stream
     for_ s cb
