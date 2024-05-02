@@ -18,11 +18,12 @@ import Data.Filterable (filter)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Newtype (wrap)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Data.Traversable (for_)
 import Effect (Effect)
-import Effect.Aff (Canceler(..), makeAff)
+import Effect.Aff (Canceler(..), delay, makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
@@ -97,6 +98,7 @@ parse config csv = do
 -- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
 foreach :: forall @r rl x m. MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> m Unit) -> m Unit
 foreach stream cb = whileJust do
+  liftAff $ delay $ wrap 0.0
   isReadable <- liftEffect $ Stream.readable stream
   liftAff $ when (not isReadable) $ makeAff \res -> do
     stop <- flip (Event.once Stream.readableH) stream $ res $ Right unit
