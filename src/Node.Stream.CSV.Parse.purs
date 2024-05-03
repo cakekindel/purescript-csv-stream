@@ -122,15 +122,17 @@ foreach stream cb = do
     $ liftAff
     $ makeAff \res -> do
         stop <- flip (Event.once columnsH) stream $ const do
-                  void $ getOrInitColumnsMap stream
-                  res $ Right unit
+          void $ getOrInitColumnsMap stream
+          res $ Right unit
         pure $ Canceler $ const $ liftEffect stop
 
   liftAff $ makeAff \res -> do
-    removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 0.0) <* liftEffect do
-      cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
-      record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
-      launchAff_ $ flip catchError (liftEffect <<< res <<< Left) (unlift $ cb record)
+    removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 0.0) <* liftEffect
+      ( flip catchError (res <<< Left) do
+          cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
+          record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
+          launchAff_ $ flip catchError (liftEffect <<< res <<< Left) (unlift $ cb record)
+      )
     removeEndListener <- flip (Event.once Stream.endH) stream (res $ Right unit)
     removeErrorListener <- flip (Event.on Stream.errorH) stream (res <<< Left)
 

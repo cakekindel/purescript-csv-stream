@@ -12,7 +12,7 @@ export const makeImpl = (c) => () => {
   const parser = new ParserWithColumns(c);
   parser.once("readable", () => {
     parser.columns = parser.read();
-    parser.emit('columns', parser.columns)
+    parser.emit("columns", parser.columns);
   });
   return parser;
 };
