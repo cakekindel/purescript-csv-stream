@@ -19,10 +19,11 @@ import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.Newtype (wrap)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Effect (Effect)
-import Effect.Aff (Canceler(..), launchAff_, makeAff)
+import Effect.Aff (Canceler(..), delay, launchAff_, makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Aff.Unlift (class MonadUnliftAff, UnliftAff(..), askUnliftAff)
 import Effect.Class (liftEffect)
@@ -117,7 +118,7 @@ foreach
 foreach stream cb = do
   UnliftAff unlift <- askUnliftAff
   liftAff $ makeAff \res -> do
-    removeDataListener <- flip (Event.on dataH) stream \row -> do
+    removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 0.0) <* liftEffect do
       cols <- getOrInitColumnsMap stream
       for_ cols \cols' -> do
         record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols' row
