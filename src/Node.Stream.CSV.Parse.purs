@@ -17,7 +17,7 @@ import Data.Either (Either(..))
 import Data.Filterable (filter)
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isNothing)
 import Data.Newtype (wrap)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
@@ -117,7 +117,10 @@ foreach
 foreach stream cb = do
   UnliftAff unlift <- askUnliftAff
 
-  liftAff $ makeAff \res -> pure mempty <* flip (Event.once columnsH) stream $ const do
+  alreadyHaveCols <- liftEffect $ getOrInitColumnsMap stream
+  when (isNothing alreadyHaveCols)
+    $ liftAff
+    $ makeAff \res -> pure mempty <* flip (Event.once columnsH) stream $ const do
     void $ getOrInitColumnsMap stream
     res $ Right unit
 
