@@ -18,13 +18,11 @@ import Data.Filterable (filter)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), isNothing)
-import Data.Newtype (wrap)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
 import Effect (Effect)
-import Effect.Aff (Canceler(..), delay, launchAff_, makeAff)
+import Effect.Aff (Canceler(..), makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Aff.Unlift (class MonadUnliftAff, UnliftAff(..), askUnliftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
 import Effect.Uncurried (mkEffectFn1)
@@ -90,8 +88,7 @@ make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign { columns:
 -- | Synchronously parse a CSV string
 parse
   :: forall @r rl @config missing extra m
-   . MonadUnliftAff m
-  => MonadAff m
+   . MonadAff m
   => RowToList r rl
   => ReadCSVRecord r rl
   => Union config missing (Config extra)
@@ -107,16 +104,13 @@ parse config csv = do
 -- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
 foreach
   :: forall @r rl x m
-   . MonadUnliftAff m
-  => MonadAff m
+   . MonadAff m
   => RowToList r rl
   => ReadCSVRecord r rl
   => CSVParser r x
-  -> ({ | r } -> m Unit)
+  -> ({ | r } -> Effect Unit)
   -> m Unit
 foreach stream cb = do
-  UnliftAff unlift <- askUnliftAff
-
   alreadyHaveCols <- liftEffect $ getOrInitColumnsMap stream
   when (isNothing alreadyHaveCols)
     $ liftAff
@@ -127,12 +121,12 @@ foreach stream cb = do
         pure $ Canceler $ const $ liftEffect stop
 
   liftAff $ makeAff \res -> do
-    removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 1.0) <* liftEffect
-      ( flip catchError (res <<< Left) do
-          cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
-          record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
-          launchAff_ $ flip catchError (liftEffect <<< res <<< Left) (unlift $ cb record)
-      )
+    removeDataListener <- flip (Event.on dataH) stream \row ->
+      flip catchError (res <<< Left) do
+        cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
+        record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
+        flip catchError (liftEffect <<< res <<< Left) (cb record)
+
     removeEndListener <- flip (Event.once Stream.endH) stream (res $ Right unit)
     removeErrorListener <- flip (Event.on Stream.errorH) stream (res <<< Left)
 
@@ -160,8 +154,7 @@ read stream = runMaybeT do
 -- | Collect all parsed records into an array
 readAll
   :: forall @r rl a m
-   . MonadUnliftAff m
-  => MonadAff m
+   . MonadAff m
   => RowToList r rl
   => ReadCSVRecord r rl
   => CSVParser r a
