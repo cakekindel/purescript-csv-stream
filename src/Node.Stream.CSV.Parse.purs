@@ -3,7 +3,7 @@ module Node.Stream.CSV.Parse where
 import Prelude hiding (join)
 
 import Control.Alt ((<|>))
-import Control.Monad.Error.Class (liftEither, liftMaybe)
+import Control.Monad.Error.Class (liftEither)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Except.Trans (catchError)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
@@ -15,6 +15,7 @@ import Data.Bifunctor (lmap)
 import Data.CSV.Record (class ReadCSVRecord, readCSVRecord)
 import Data.Either (Either(..))
 import Data.Filterable (filter)
+import Data.Foldable (for_)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
@@ -117,9 +118,10 @@ foreach stream cb = do
   UnliftAff unlift <- askUnliftAff
   liftAff $ makeAff \res -> do
     removeDataListener <- flip (Event.on dataH) stream \row -> do
-      cols <- liftMaybe (error "did not read header column") =<< getOrInitColumnsMap stream
-      record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
-      launchAff_ $ flip catchError (liftEffect <<< res <<< Left) (unlift $ cb record)
+      cols <- getOrInitColumnsMap stream
+      for_ cols \cols' -> do
+        record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols' row
+        launchAff_ $ flip catchError (liftEffect <<< res <<< Left) (unlift $ cb record)
     removeEndListener <- flip (Event.once Stream.endH) stream (res $ Right unit)
     removeErrorListener <- flip (Event.on Stream.errorH) stream (res <<< Left)
 
