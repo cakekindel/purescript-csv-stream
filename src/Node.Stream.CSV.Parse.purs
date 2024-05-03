@@ -150,7 +150,7 @@ foreach stream cb =
               else do
                 r' <- MaybeT $ pure r
                 lift $ cb r'
-                pure unit
+                empty
 
       readToQ =
         whileJust
