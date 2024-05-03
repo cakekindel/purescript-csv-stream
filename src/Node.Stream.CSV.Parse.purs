@@ -3,7 +3,7 @@ module Node.Stream.CSV.Parse where
 import Prelude hiding (join)
 
 import Control.Alt ((<|>))
-import Control.Alternative (guard)
+import Control.Alternative (guard, empty)
 import Control.Monad.Error.Class (liftEither)
 import Control.Monad.Except (runExcept)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
@@ -144,7 +144,7 @@ foreach stream cb =
               isClosed <- liftEffect $ Stream.closed stream
               if isClosed && isNothing r then
                 pure unit
-              else if isNothing r then
+              else if isNothing r then do
                 liftAff $ delay $ wrap 10.0
                 empty
               else do
