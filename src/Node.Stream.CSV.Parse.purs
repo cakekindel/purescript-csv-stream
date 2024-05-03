@@ -100,12 +100,12 @@ parse config csv = do
 -- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
 foreach :: forall @r rl x m f p. Parallel p m => Alternative p => MonadFork f m => MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> m Unit) -> m Unit
 foreach stream cb = whileJust do
-  liftAff $ delay $ wrap 0.0
   isReadable <- liftEffect $ Stream.readable stream
   liftAff $ when (not isReadable) $ makeAff \res -> do
     stop <- flip (Event.once Stream.readableH) stream $ res $ Right unit
     pure $ Canceler $ const $ liftEffect stop
   fibers <- flip tailRecM [] \fibers -> do
+    liftAff $ delay $ wrap 0.0
     r <- liftEffect $ read @r stream
     case r of
       Just r' -> do
