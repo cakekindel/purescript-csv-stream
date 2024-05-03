@@ -146,10 +146,10 @@ foreach stream cb =
                 pure unit
               else if isNothing r then
                 liftAff $ delay $ wrap 10.0
+                empty
               else do
                 r' <- MaybeT $ pure r
                 lift $ cb r'
-                guard $ isClosed
                 pure unit
 
       readToQ =
