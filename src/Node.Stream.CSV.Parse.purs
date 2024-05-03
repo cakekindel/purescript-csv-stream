@@ -25,6 +25,7 @@ import Effect.Aff (Canceler(..), makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
+import Effect.Timer (setTimeout)
 import Effect.Uncurried (mkEffectFn1)
 import Foreign (Foreign, unsafeToForeign)
 import Foreign.Object (Object)
@@ -122,13 +123,16 @@ foreach stream cb = do
 
   liftAff $ makeAff \res -> do
     removeDataListener <- flip (Event.on dataH) stream \row ->
-      flip catchError (res <<< Left) do
-        cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
-        record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
-        flip catchError (liftEffect <<< res <<< Left) (cb record)
+      void
+        $ setTimeout 0
+        $ flip catchError (res <<< Left)
+        $ do
+            cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
+            record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
+            flip catchError (liftEffect <<< res <<< Left) (cb record)
 
     removeEndListener <- flip (Event.once Stream.endH) stream (res $ Right unit)
-    removeErrorListener <- flip (Event.on Stream.errorH) stream (res <<< Left)
+    removeErrorListener <- flip (Event.once Stream.errorH) stream (res <<< Left)
 
     pure $ Canceler $ const $ liftEffect do
       removeDataListener
