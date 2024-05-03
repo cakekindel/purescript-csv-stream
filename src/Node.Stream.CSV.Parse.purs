@@ -3,15 +3,12 @@ module Node.Stream.CSV.Parse where
 import Prelude hiding (join)
 
 import Control.Alt ((<|>))
-import Control.Alternative (guard, empty)
-import Control.Monad.Error.Class (liftEither)
+import Control.Monad.Error.Class (liftEither, liftMaybe)
 import Control.Monad.Except (runExcept)
+import Control.Monad.Except.Trans (catchError)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
-import Control.Monad.Rec.Class (class MonadRec, untilJust, whileJust)
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.Trans.Class (lift)
-import Control.MonadPlus (class Alternative)
-import Control.Parallel (class Parallel, parSequence_)
 import Data.Array as Array
 import Data.Array.ST as Array.ST
 import Data.Bifunctor (lmap)
@@ -20,15 +17,13 @@ import Data.Either (Either(..))
 import Data.Filterable (filter)
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), isNothing)
-import Data.Newtype (wrap)
+import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
-import Data.Traversable (for)
 import Effect (Effect)
-import Effect as Effect
-import Effect.Aff (Canceler(..), delay, makeAff)
+import Effect.Aff (Canceler(..), launchAff_, makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Aff.Unlift (class MonadUnliftAff, UnliftAff(..), askUnliftAff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
 import Effect.Uncurried (mkEffectFn1)
@@ -93,11 +88,9 @@ make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign { columns:
 
 -- | Synchronously parse a CSV string
 parse
-  :: forall @r rl @config missing extra m p
-   . Alternative p
-  => Parallel p m
+  :: forall @r rl @config missing extra m
+   . MonadUnliftAff m
   => MonadAff m
-  => MonadRec m
   => RowToList r rl
   => ReadCSVRecord r rl
   => Union config missing (Config extra)
@@ -112,64 +105,29 @@ parse config csv = do
 
 -- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
 foreach
-  :: forall @r rl x m p
-   . Alternative p
-  => Parallel p m
-  => MonadRec m
+  :: forall @r rl x m
+   . MonadUnliftAff m
   => MonadAff m
   => RowToList r rl
   => ReadCSVRecord r rl
   => CSVParser r x
   -> ({ | r } -> m Unit)
   -> m Unit
-foreach stream cb =
-  do
-    q <- liftEffect $ liftST $ Array.ST.new
+foreach stream cb = do
+  UnliftAff unlift <- askUnliftAff
+  liftAff $ makeAff \res -> do
+    removeDataListener <- flip (Event.on dataH) stream \row -> do
+      cols <- liftMaybe (error "did not read header column") =<< getOrInitColumnsMap stream
+      record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
+      launchAff_ $ flip catchError (liftEffect <<< res <<< Left) (unlift $ cb record)
+    removeEndListener <- flip (Event.once Stream.endH) stream (res $ Right unit)
+    removeErrorListener <- flip (Event.on Stream.errorH) stream (res <<< Left)
 
-    let
-      deque = liftEffect $ liftST $ Array.ST.shift q
-      enque a = liftEffect $ liftST $ Array.ST.push a q
+    pure $ Canceler $ const $ liftEffect do
+      removeDataListener
+      removeEndListener
+      removeErrorListener
 
-      waitReadable =
-         makeAff \res -> do
-          stop <- flip (Event.once Stream.readableH) stream $ res $ Right unit
-          pure $ Canceler $ const $ liftEffect stop
-
-      processQ =
-        untilJust
-          $ runMaybeT
-          $ do
-              liftAff $ delay $ wrap 0.0
-              r <- deque
-              isClosed <- liftEffect $ Stream.closed stream
-              if isClosed && isNothing r then
-                pure unit
-              else if isNothing r then do
-                liftAff $ delay $ wrap 10.0
-                empty
-              else do
-                r' <- MaybeT $ pure r
-                lift $ cb r'
-                empty
-
-      readToQ =
-        whileJust
-          $ runMaybeT
-          $ do
-              liftAff $ delay $ wrap 0.0
-              guard =<< not <$> liftEffect (Stream.closed stream)
-              isReadable <- liftEffect $ Stream.readable stream
-              liftAff $ when (not isReadable) waitReadable
-
-              liftEffect $ Effect.untilE do
-                r <- read @r stream
-                void $ for r enque
-                pure $ isNothing r
-              guard =<< not <$> liftEffect (Stream.closed stream)
-              pure unit
-
-    parSequence_ [readToQ, processQ]
-  
 -- | Reads a parsed record from the stream.
 -- |
 -- | Returns `Nothing` when either:
@@ -188,10 +146,8 @@ read stream = runMaybeT do
 
 -- | Collect all parsed records into an array
 readAll
-  :: forall @r rl a m p
-   . Alternative p
-  => Parallel p m
-  => MonadRec m
+  :: forall @r rl a m
+   . MonadUnliftAff m
   => MonadAff m
   => RowToList r rl
   => ReadCSVRecord r rl
@@ -203,7 +159,7 @@ readAll stream = do
   liftEffect $ liftST $ Array.ST.unsafeFreeze records
 
 -- | `data` event. Emitted when a CSV record has been parsed.
-dataH :: forall r a. EventHandle1 (CSVParser r a) { | r }
+dataH :: forall r a. EventHandle1 (CSVParser r a) (Array String)
 dataH = EventHandle "data" mkEffectFn1
 
 -- | FFI
