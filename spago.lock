@@ -15,7 +15,6 @@ workspace:
         - foldable-traversable: ">=6.0.0 <7.0.0"
         - foreign: ">=7.0.0 <8.0.0"
         - foreign-object: ">=4.1.0 <5.0.0"
-        - fork: ">=6.0.0 <7.0.0"
         - integers: ">=6.0.0 <7.0.0"
         - lists: ">=7.0.0 <8.0.0"
         - maybe: ">=6.0.0 <7.0.0"
@@ -61,7 +60,6 @@ workspace:
         - foldable-traversable
         - foreign
         - foreign-object
-        - fork
         - formatters
         - functions
         - functors
@@ -342,12 +340,6 @@ packages:
       - tuples
       - typelevel-prelude
       - unfoldable
-  fork:
-    type: registry
-    version: 6.0.0
-    integrity: sha256-X7u0SuCvFbLbzuNEKLBNuWjmcroqMqit4xEzpQwAP7E=
-    dependencies:
-      - aff
   formatters:
     type: registry
     version: 7.0.0
