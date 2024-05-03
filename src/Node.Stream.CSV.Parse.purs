@@ -127,7 +127,7 @@ foreach stream cb = do
         pure $ Canceler $ const $ liftEffect stop
 
   liftAff $ makeAff \res -> do
-    removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 0.0) <* liftEffect
+    removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 1.0) <* liftEffect
       ( flip catchError (res <<< Left) do
           cols <- liftMaybe (error "unreachable") =<< getOrInitColumnsMap stream
           record <- liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols row
