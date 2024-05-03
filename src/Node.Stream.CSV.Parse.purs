@@ -120,9 +120,11 @@ foreach stream cb = do
   alreadyHaveCols <- liftEffect $ getOrInitColumnsMap stream
   when (isNothing alreadyHaveCols)
     $ liftAff
-    $ makeAff \res -> pure mempty <* flip (Event.once columnsH) stream $ const do
-    void $ getOrInitColumnsMap stream
-    res $ Right unit
+    $ makeAff \res -> do
+        stop <- flip (Event.once columnsH) stream $ const do
+                  void $ getOrInitColumnsMap stream
+                  res $ Right unit
+        pure $ Canceler $ const $ liftEffect stop
 
   liftAff $ makeAff \res -> do
     removeDataListener <- flip (Event.on dataH) stream \row -> launchAff_ $ delay (wrap 0.0) <* liftEffect do
