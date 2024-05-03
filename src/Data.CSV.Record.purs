@@ -22,11 +22,12 @@ class RowToList r rl <= WriteCSVRecord r rl | rl -> r where
   writeCSVRecord :: { | r } -> Array String
 
 instance (RowToList r (Cons k v tailrl), IsSymbol k, WriteCSV v, Lacks k tail, Cons k v tail r, WriteCSVRecord tail tailrl) => WriteCSVRecord r (Cons k v tailrl) where
-  writeCSVRecord r = let
-    val = writeCSV $ Record.get (Proxy @k) r
-    tail = writeCSVRecord @tail @tailrl $ Record.delete (Proxy @k) r
-  in
-    [val] <> tail
+  writeCSVRecord r =
+    let
+      val = writeCSV $ Record.get (Proxy @k) r
+      tail = writeCSVRecord @tail @tailrl $ Record.delete (Proxy @k) r
+    in
+      [ val ] <> tail
 
 instance WriteCSVRecord () Nil where
   writeCSVRecord _ = []

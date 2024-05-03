@@ -1,14 +1,17 @@
 module Node.Stream.CSV.Parse where
 
-import Prelude
+import Prelude hiding (join)
 
 import Control.Alt ((<|>))
+import Control.Alternative (class Alternative)
 import Control.Monad.Error.Class (liftEither)
 import Control.Monad.Except (runExcept)
+import Control.Monad.Fork.Class (class MonadFork, fork, join)
 import Control.Monad.Maybe.Trans (MaybeT(..), runMaybeT)
-import Control.Monad.Rec.Class (class MonadRec, whileJust)
+import Control.Monad.Rec.Class (class MonadRec, tailRecM, Step(..), whileJust)
 import Control.Monad.ST.Global as ST
 import Control.Monad.Trans.Class (lift)
+import Control.Parallel (class Parallel, parTraverse)
 import Data.Array as Array
 import Data.Array.ST as Array.ST
 import Data.Bifunctor (lmap)
@@ -21,7 +24,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
-import Data.Traversable (for_)
 import Effect (Effect)
 import Effect.Aff (Canceler(..), delay, makeAff)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -85,10 +87,10 @@ type Config r =
 
 -- | Create a CSVParser
 make :: forall @r rl @config @missing @extra. RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> Effect (CSVParser r ())
-make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign {columns: false, cast: false, cast_date: false}) <<< recordToForeign
+make = makeImpl <<< unsafeToForeign <<< Object.union (recordToForeign { columns: false, cast: false, cast_date: false }) <<< recordToForeign
 
 -- | Synchronously parse a CSV string
-parse :: forall @r rl @config missing extra m. MonadAff m => MonadRec m => RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> String -> m (Array { | r })
+parse :: forall @r rl @config missing extra m p f. Parallel p m => MonadFork f m => Alternative p => MonadAff m => MonadRec m => RowToList r rl => ReadCSVRecord r rl => Union config missing (Config extra) => { | config } -> String -> m (Array { | r })
 parse config csv = do
   stream <- liftEffect $ make @r @config @missing @extra config
   void $ liftEffect $ Stream.writeString stream UTF8 csv
@@ -96,17 +98,21 @@ parse config csv = do
   readAll stream
 
 -- | Loop until the stream is closed, invoking the callback with each record as it is parsed.
-foreach :: forall @r rl x m. MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> m Unit) -> m Unit
+foreach :: forall @r rl x m f p. Parallel p m => Alternative p => MonadFork f m => MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r x -> ({ | r } -> m Unit) -> m Unit
 foreach stream cb = whileJust do
   liftAff $ delay $ wrap 0.0
   isReadable <- liftEffect $ Stream.readable stream
   liftAff $ when (not isReadable) $ makeAff \res -> do
     stop <- flip (Event.once Stream.readableH) stream $ res $ Right unit
     pure $ Canceler $ const $ liftEffect stop
-  whileJust do
+  fibers <- flip tailRecM [] \fibers -> do
     r <- liftEffect $ read @r stream
-    for_ r cb
-    pure $ void r
+    case r of
+      Just r' -> do
+        f <- fork (cb r')
+        pure $ Loop $ fibers <> [ f ]
+      Nothing -> pure $ Done fibers
+  void $ parTraverse join fibers
   isClosed <- liftEffect $ Stream.closed stream
   pure $ if isClosed then Nothing else Just unit
 
@@ -122,7 +128,7 @@ read stream = runMaybeT do
   liftEither $ lmap (error <<< show) $ runExcept $ readCSVRecord @r @rl cols raw
 
 -- | Collect all parsed records into an array
-readAll :: forall @r rl a m. MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> m (Array { | r })
+readAll :: forall @r rl a m p f. Parallel p m => MonadFork f m => Alternative p => MonadRec m => MonadAff m => RowToList r rl => ReadCSVRecord r rl => CSVParser r a -> m (Array { | r })
 readAll stream = do
   records <- liftEffect $ ST.toEffect $ Array.ST.new
   foreach stream $ void <<< liftEffect <<< ST.toEffect <<< flip Array.ST.push records
