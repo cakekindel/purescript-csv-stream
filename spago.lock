@@ -16,7 +16,6 @@ workspace:
         - foreign: ">=7.0.0 <8.0.0"
         - foreign-object: ">=4.1.0 <5.0.0"
         - integers: ">=6.0.0 <7.0.0"
-        - js-timers
         - lists: ">=7.0.0 <8.0.0"
         - maybe: ">=6.0.0 <7.0.0"
         - newtype: ">=5.0.0 <6.0.0"
@@ -35,7 +34,6 @@ workspace:
         - tailrec: ">=6.1.0 <7.0.0"
         - transformers: ">=6.0.0 <7.0.0"
         - typelevel-prelude: ">=7.0.0 <8.0.0"
-        - unlift: ">=1.0.1 <2.0.0"
         - unsafe-coerce: ">=6.0.0 <7.0.0"
       test_dependencies:
         - console
@@ -44,7 +42,6 @@ workspace:
         - arraybuffer-types
         - arrays
         - bifunctors
-        - catenable-lists
         - console
         - const
         - contravariant
@@ -63,8 +60,6 @@ workspace:
         - foreign
         - foreign-object
         - formatters
-        - free
-        - freet
         - functions
         - functors
         - gen
@@ -72,11 +67,9 @@ workspace:
         - integers
         - invariant
         - js-date
-        - js-timers
         - lazy
         - lists
         - maybe
-        - monad-control
         - newtype
         - node-buffer
         - node-event-emitter
@@ -106,7 +99,6 @@ workspace:
         - typelevel-prelude
         - unfoldable
         - unicode
-        - unlift
         - unsafe-coerce
   extra_packages: {}
 packages:
@@ -166,18 +158,6 @@ packages:
       - newtype
       - prelude
       - tuples
-  catenable-lists:
-    type: registry
-    version: 7.0.0
-    integrity: sha256-76vYENhwF4BWTBsjeLuErCH2jqVT4M3R1HX+4RwSftA=
-    dependencies:
-      - control
-      - foldable-traversable
-      - lists
-      - maybe
-      - prelude
-      - tuples
-      - unfoldable
   console:
     type: registry
     version: 6.1.0
@@ -371,40 +351,6 @@ packages:
       - parsing
       - prelude
       - transformers
-  free:
-    type: registry
-    version: 7.1.0
-    integrity: sha256-JAumgEsGSzJCNLD8AaFvuX7CpqS5yruCngi6yI7+V5k=
-    dependencies:
-      - catenable-lists
-      - control
-      - distributive
-      - either
-      - exists
-      - foldable-traversable
-      - invariant
-      - lazy
-      - maybe
-      - prelude
-      - tailrec
-      - transformers
-      - tuples
-      - unsafe-coerce
-  freet:
-    type: registry
-    version: 7.0.0
-    integrity: sha256-zkL6wU4ZPq8xz1kGFxoliWqyhBksepMJTyA68VEBaJo=
-    dependencies:
-      - aff
-      - bifunctors
-      - effect
-      - either
-      - exists
-      - free
-      - prelude
-      - tailrec
-      - transformers
-      - tuples
   functions:
     type: registry
     version: 6.0.0
@@ -479,12 +425,6 @@ packages:
       - foreign
       - integers
       - now
-  js-timers:
-    type: registry
-    version: 6.1.0
-    integrity: sha256-znHWLSSOYw15P5DTcsAdal2lf7nGA2yayLdOZ2t5r7o=
-    dependencies:
-      - effect
   lazy:
     type: registry
     version: 6.0.0
@@ -520,15 +460,6 @@ packages:
       - invariant
       - newtype
       - prelude
-  monad-control:
-    type: registry
-    version: 5.0.0
-    integrity: sha256-bgfDW30wbIm70NR1Tvvh9P+VFQMDh1wK2sSJXCj/dZc=
-    dependencies:
-      - aff
-      - freet
-      - identity
-      - lists
   newtype:
     type: registry
     version: 5.0.0
@@ -852,23 +783,6 @@ packages:
       - foldable-traversable
       - maybe
       - strings
-  unlift:
-    type: registry
-    version: 1.0.1
-    integrity: sha256-nbBCVV0fZz/3UHKoW11dcTwBYmQOIgK31ht2BN47RPw=
-    dependencies:
-      - aff
-      - effect
-      - either
-      - freet
-      - identity
-      - lists
-      - maybe
-      - monad-control
-      - prelude
-      - st
-      - transformers
-      - tuples
   unsafe-coerce:
     type: registry
     version: 6.0.0

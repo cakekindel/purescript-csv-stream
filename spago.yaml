@@ -10,7 +10,6 @@ package:
     strict: true
     pedanticPackages: true
   dependencies:
-    - js-timers
     - aff: ">=7.1.0 <8.0.0"
     - arrays: ">=7.3.0 <8.0.0"
     - bifunctors: ">=6.0.0 <7.0.0"
@@ -42,7 +41,6 @@ package:
     - tailrec: ">=6.1.0 <7.0.0"
     - transformers: ">=6.0.0 <7.0.0"
     - typelevel-prelude: ">=7.0.0 <8.0.0"
-    - unlift: ">=1.0.1 <2.0.0"
     - unsafe-coerce: ">=6.0.0 <7.0.0"
   test:
     main: Test.Main
