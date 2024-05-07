@@ -43,7 +43,7 @@ instance Apply (ObjectStream i) where
   apply (ObjectStream iab) (ObjectStream ia) = wrap $ join $ pure applyImpl <*> iab <*> ia
 
 instance Applicative (ObjectStream i) where
-  pure = wrap <<< constImpl
+  pure = once
 
 instance Monad (ObjectStream i)
 
@@ -67,8 +67,8 @@ instance Profunctor ObjectStream where
     sac <- pipeImpl sab sbc
     pipeImpl sac scd
 
--- | A stream that will emit the value `a` exactly once.
-once :: forall a. a -> ObjectStream Unit a
+-- | A stream that will emit the value `a` exactly once, and ignores any written chunks.
+once :: forall i a. a -> ObjectStream i a
 once = wrap <<< onceImpl
 
 -- | A stream that will immediately emit `close` and `end` events.
@@ -140,9 +140,6 @@ run (ObjectStream s') = do
           cancelData
           cancelError
           cancelEnd
-
--- | Constructs a `Transform` stream that always invokes the callback with the provided value.
-foreign import constImpl :: forall i a. a -> Effect (Stream i a)
 
 -- | Constructs a Stream that re-emits the outputs from each stream, in order.
 foreign import chainImpl :: forall a. Array (Stream Unit a) -> Effect (Stream Unit a)

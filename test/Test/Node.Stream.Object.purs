@@ -45,6 +45,11 @@ spec =
         it "creates a readable that emits each element" do
           out <- Stream.run (Stream.fromFoldable [ 1, 2, 3 ])
           out `shouldEqual` [ 1, 2, 3 ]
+        it "bind maps each number" do
+          out <- Stream.run do
+            a <- Stream.fromFoldable [ 1, 2, 3 ]
+            pure $ a + 1
+          out `shouldEqual` [ 2, 3, 4 ]
         it "bind fans out" do
           out <- Stream.run do
             a <- Stream.fromFoldable [ 1, 2, 3 ]
