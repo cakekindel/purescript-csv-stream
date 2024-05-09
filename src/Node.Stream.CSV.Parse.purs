@@ -141,7 +141,7 @@ foreach stream cb = do
       untilJust do
         delay $ wrap 10.0
         ct <- liftEffect $ ST.toEffect $ STRef.read count
-        pure $ if ct == 0 then Just unit else Nothing
+        pure $ if ct <= 1 then Just unit else Nothing
       liftEffect $ res $ Right unit
 
     pure $ Canceler $ const $ liftEffect do
