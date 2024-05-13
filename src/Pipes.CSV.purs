@@ -2,9 +2,9 @@ module Pipes.CSV where
 
 import Prelude
 
-import Control.Monad.Error.Class (liftEither)
+import Control.Monad.Error.Class (class MonadThrow, liftEither)
 import Control.Monad.Except (runExcept)
-import Control.Monad.Rec.Class (forever)
+import Control.Monad.Rec.Class (class MonadRec, forever)
 import Control.Monad.ST.Global as ST
 import Control.Monad.ST.Ref as STRef
 import Data.Array as Array
@@ -14,9 +14,9 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
-import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (liftEffect)
-import Effect.Exception (error)
+import Effect.Exception (Error, error)
 import Node.Buffer (Buffer)
 import Node.Stream.CSV.Parse as CSV.Parse
 import Node.Stream.CSV.Stringify as CSV.Stringify
@@ -47,10 +47,13 @@ import Type.Prelude (Proxy(..))
 -- | rows `shouldEqual` [{id: 1, foo: "hi", is_deleted: false}, {id: 2, foo: "bye", is_deleted: true}]
 -- | ```
 parse
-  :: forall @r rl
-  . RowToList r rl
+  :: forall @r rl m
+   . MonadAff m
+  => MonadThrow Error m
+  => MonadRec m
+  => RowToList r rl
   => ReadCSVRecord r rl
-  => Pipe (Maybe Buffer) (Maybe { | r }) Aff Unit
+  => Pipe (Maybe Buffer) (Maybe { | r }) m Unit
 parse = do
   raw <- liftEffect $ CSV.Parse.make {}
   colsST <- liftEffect $ ST.toEffect $ STRef.new Nothing
@@ -74,14 +77,14 @@ parse = do
 
 -- | Transforms buffer chunks of a CSV file to parsed
 -- | arrays of CSV values.
-parseRaw :: Pipe (Maybe Buffer) (Maybe (Array String)) Aff Unit
+parseRaw :: forall m. MonadAff m => MonadThrow Error m => Pipe (Maybe Buffer) (Maybe (Array String)) m Unit
 parseRaw = do
   s <- liftEffect $ CSV.Parse.toObjectStream <$> CSV.Parse.make {}
   Pipes.Stream.fromTransform s
 
 -- | Transforms CSV rows into stringified CSV records
 -- | using the given ordered array of column names.
-stringifyRaw :: Array String -> Pipe (Maybe (Array String)) (Maybe String) Aff Unit
+stringifyRaw :: forall m. MonadAff m => MonadThrow Error m => Array String -> Pipe (Maybe (Array String)) (Maybe String) m Unit
 stringifyRaw columns = do
   s <- liftEffect $ CSV.Stringify.toObjectStream <$> CSV.Stringify.make columns {}
   Pipes.Stream.fromTransform s
@@ -89,7 +92,7 @@ stringifyRaw columns = do
 -- | Transforms purescript records into stringified CSV records.
 -- |
 -- | Columns are inferred from the record's keys, ordered alphabetically.
-stringify :: forall r rl. WriteCSVRecord r rl => RowToList r rl => Keys rl => Pipe (Maybe { | r }) (Maybe String) Aff Unit
+stringify :: forall m r rl. MonadRec m => MonadAff m => MonadThrow Error m => WriteCSVRecord r rl => RowToList r rl => Keys rl => Pipe (Maybe { | r }) (Maybe String) m Unit
 stringify = do
   raw <- liftEffect $ CSV.Stringify.make (Array.fromFoldable $ keys $ Proxy @r) {}
   let

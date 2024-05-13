@@ -9,7 +9,7 @@ workspace:
         - datetime: ">=6.1.0 <7.0.0"
         - effect: ">=4.0.0 <5.0.0"
         - exceptions: ">=6.0.0 <7.0.0"
-        - foldable-traversable
+        - foldable-traversable: ">=6.0.0 <7.0.0"
         - foreign: ">=7.0.0 <8.0.0"
         - foreign-object: ">=4.1.0 <5.0.0"
         - integers: ">=6.0.0 <7.0.0"
@@ -18,7 +18,7 @@ workspace:
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
-        - node-stream-pipes
+        - node-stream-pipes: ">=1.2.3 <2.0.0"
         - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - numbers: ">=9.0.1 <10.0.0"
@@ -28,11 +28,11 @@ workspace:
         - prelude: ">=6.0.1 <7.0.0"
         - record: ">=4.0.0 <5.0.0"
         - record-extra: ">=5.0.1 <6.0.0"
-        - st
+        - st: ">=6.2.0 <7.0.0"
         - strings: ">=6.0.1 <7.0.0"
         - tailrec: ">=6.1.0 <7.0.0"
         - transformers: ">=6.0.0 <7.0.0"
-        - tuples
+        - tuples: ">=7.0.0 <8.0.0"
         - typelevel-prelude: ">=7.0.0 <8.0.0"
         - unsafe-coerce: ">=6.0.0 <7.0.0"
       test_dependencies:
@@ -120,12 +120,10 @@ workspace:
         - typelevel-prelude
         - unfoldable
         - unicode
+        - unordered-collections
         - unsafe-coerce
         - variant
-  extra_packages:
-    node-stream-pipes:
-      git: https://git.orionkindel.com/orion/purescript-node-stream-pipes
-      ref: v1.0.5
+  extra_packages: {}
 packages:
   aff:
     type: registry
@@ -608,9 +606,9 @@ packages:
     dependencies:
       - effect
   node-stream-pipes:
-    type: git
-    url: https://git.orionkindel.com/orion/purescript-node-stream-pipes
-    rev: f2f18c3c13ae2f0f5787ccfb3832fc8c653e83ad
+    type: registry
+    version: 1.2.3
+    integrity: sha256-lXD3x6+p72uBrRHGHrob2jrrBDakhhZE9O9EYE4aFiE=
     dependencies:
       - aff
       - arrays
@@ -618,6 +616,8 @@ packages:
       - either
       - exceptions
       - foldable-traversable
+      - foreign-object
+      - lists
       - maybe
       - mmorph
       - newtype
@@ -627,6 +627,7 @@ packages:
       - node-path
       - node-streams
       - node-zlib
+      - ordered-collections
       - parallel
       - pipes
       - prelude
@@ -634,6 +635,8 @@ packages:
       - strings
       - tailrec
       - transformers
+      - tuples
+      - unordered-collections
       - unsafe-coerce
   node-streams:
     type: registry
@@ -1038,6 +1041,21 @@ packages:
       - foldable-traversable
       - maybe
       - strings
+  unordered-collections:
+    type: registry
+    version: 3.1.0
+    integrity: sha256-H2eQR+ylI+cljz4XzWfEbdF7ee+pnw2IZCeq69AuJ+Q=
+    dependencies:
+      - arrays
+      - enums
+      - functions
+      - integers
+      - lists
+      - prelude
+      - record
+      - tuples
+      - typelevel-prelude
+      - unfoldable
   unsafe-coerce:
     type: registry
     version: 6.0.0

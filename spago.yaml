@@ -10,16 +10,13 @@ package:
     strict: true
     pedanticPackages: true
   dependencies:
-    - foldable-traversable
-    - node-stream-pipes
-    - st
-    - tuples
     - aff: ">=7.1.0 <8.0.0"
     - arrays: ">=7.3.0 <8.0.0"
     - bifunctors: ">=6.0.0 <7.0.0"
     - datetime: ">=6.1.0 <7.0.0"
     - effect: ">=4.0.0 <5.0.0"
     - exceptions: ">=6.0.0 <7.0.0"
+    - foldable-traversable: ">=6.0.0 <7.0.0"
     - foreign: ">=7.0.0 <8.0.0"
     - foreign-object: ">=4.1.0 <5.0.0"
     - integers: ">=6.0.0 <7.0.0"
@@ -28,6 +25,7 @@ package:
     - newtype: ">=5.0.0 <6.0.0"
     - node-buffer: ">=9.0.0 <10.0.0"
     - node-event-emitter: ">=3.0.0 <4.0.0"
+    - node-stream-pipes: ">=1.2.3 <2.0.0"
     - node-streams: ">=9.0.0 <10.0.0"
     - nullable: ">=6.0.0 <7.0.0"
     - numbers: ">=9.0.1 <10.0.0"
@@ -37,9 +35,11 @@ package:
     - prelude: ">=6.0.1 <7.0.0"
     - record: ">=4.0.0 <5.0.0"
     - record-extra: ">=5.0.1 <6.0.0"
+    - st: ">=6.2.0 <7.0.0"
     - strings: ">=6.0.1 <7.0.0"
     - tailrec: ">=6.1.0 <7.0.0"
     - transformers: ">=6.0.0 <7.0.0"
+    - tuples: ">=7.0.0 <8.0.0"
     - typelevel-prelude: ">=7.0.0 <8.0.0"
     - unsafe-coerce: ">=6.0.0 <7.0.0"
   test:
@@ -53,7 +53,4 @@ package:
       - simple-json
       - spec
 workspace:
-  extraPackages:
-    node-stream-pipes:
-      git: 'https://git.orionkindel.com/orion/purescript-node-stream-pipes'
-      ref: 'v1.0.5'
+  extraPackages: {}
