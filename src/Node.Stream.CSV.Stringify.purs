@@ -54,15 +54,15 @@ recordToForeign = unsafeCoerce
 -- | Requires an ordered array of column names.
 make
   :: forall @config @missing @extra
-   . Union config missing (Config extra)
+  . Union config missing (Config extra)
   => Array String
   -> { | config }
   -> Effect (CSVStringifier ())
 make columns =
   makeImpl
-    <<< unsafeToForeign
-    <<< Object.union (recordToForeign { columns, header: true })
-    <<< recordToForeign
+  <<< unsafeToForeign
+  <<< Object.union (recordToForeign { columns, header: true })
+  <<< recordToForeign
 
 -- | Convert the raw stream to a typed ObjectStream
 toObjectStream :: CSVStringifier () -> Object.Transform (Array String) String

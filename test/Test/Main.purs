@@ -10,5 +10,5 @@ import Test.Spec.Reporter (specReporter)
 import Test.Spec.Runner (defaultConfig, runSpec')
 
 main :: Effect Unit
-main = launchAff_ $ runSpec' (defaultConfig { timeout = Nothing }) [ specReporter ] do
+main = launchAff_ $ runSpec' (defaultConfig { failFast = true, timeout = Nothing }) [ specReporter ] do
   Test.Pipes.CSV.spec
