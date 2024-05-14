@@ -40,7 +40,7 @@ instance (RowToList r (Cons k v tailrl), IsSymbol k, ReadCSV v, Lacks k tail, Co
   readCSVRecord cols vals = do
     let
       k = reflectSymbol (Proxy @k)
-    pos <- liftMaybe (pure $ ForeignError $ "row too long; did not expect value " <> k) $ Map.lookup k cols
+    pos <- liftMaybe (pure $ ForeignError $ "reached end of row looking for column " <> k) $ Map.lookup k cols
     let valraw = fromMaybe "" $ Array.index vals pos
     val <- readCSV @v valraw
     tail <- readCSVRecord @tail @tailrl cols vals
