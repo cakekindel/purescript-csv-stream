@@ -18,7 +18,7 @@ workspace:
         - newtype: ">=5.0.0 <6.0.0"
         - node-buffer: ">=9.0.0 <10.0.0"
         - node-event-emitter: ">=3.0.0 <4.0.0"
-        - node-stream-pipes: ">=1.5.0 <2.0.0"
+        - node-stream-pipes: ">=1.6.0 <2.0.0"
         - node-streams: ">=9.0.0 <10.0.0"
         - nullable: ">=6.0.0 <7.0.0"
         - numbers: ">=9.0.1 <10.0.0"
@@ -39,6 +39,7 @@ workspace:
         - console
         - gen
         - node-fs
+        - node-process
         - node-zlib
         - quickcheck
         - simple-json
@@ -87,6 +88,7 @@ workspace:
         - node-event-emitter
         - node-fs
         - node-path
+        - node-process
         - node-stream-pipes
         - node-streams
         - node-zlib
@@ -100,6 +102,7 @@ workspace:
         - parsing
         - partial
         - pipes
+        - posix-types
         - precise-datetime
         - prelude
         - profunctor
@@ -605,10 +608,24 @@ packages:
     integrity: sha256-pd82nQ+2l5UThzaxPdKttgDt7xlsgIDLpPG0yxDEdyE=
     dependencies:
       - effect
+  node-process:
+    type: registry
+    version: 11.2.0
+    integrity: sha256-+2MQDYChjGbVbapCyJtuWYwD41jk+BntF/kcOTKBMVs=
+    dependencies:
+      - effect
+      - foreign
+      - foreign-object
+      - maybe
+      - node-event-emitter
+      - node-streams
+      - posix-types
+      - prelude
+      - unsafe-coerce
   node-stream-pipes:
     type: registry
-    version: 1.5.0
-    integrity: sha256-kca0MJ8Pz4tXNpaw7CdysyNAgdbb8yqH1FhOoYbRm5s=
+    version: 1.6.0
+    integrity: sha256-aYwtrkJgTzLEaYZNel2HLISaWecyBzyKoGVpZpIRTJI=
     dependencies:
       - aff
       - arrays
@@ -620,7 +637,6 @@ packages:
       - lists
       - maybe
       - mmorph
-      - newtype
       - node-buffer
       - node-event-emitter
       - node-fs
@@ -783,6 +799,13 @@ packages:
       - tailrec
       - transformers
       - tuples
+  posix-types:
+    type: registry
+    version: 6.0.0
+    integrity: sha256-ZfFz8RR1lee/o/Prccyeut3Q+9tYd08mlR72sIh6GzA=
+    dependencies:
+      - maybe
+      - prelude
   precise-datetime:
     type: registry
     version: 7.0.0
