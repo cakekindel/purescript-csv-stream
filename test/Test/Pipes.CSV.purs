@@ -17,6 +17,7 @@ import Effect.Console (log)
 import Node.Encoding (Encoding(..))
 import Partial.Unsafe (unsafePartial)
 import Pipes (yield, (>->))
+import Pipes.Async ((>-/->))
 import Pipes.CSV as Pipes.CSV
 import Pipes.Collect as Pipes.Collect
 import Pipes.Construct as Pipes.Construct
@@ -50,7 +51,7 @@ spec =
           , { id: 3, foo: "hello", flag: true, created: dt "1970-01-01T00:00:00Z" }
           ]
 
-      csv' <- map fold $ Pipes.Collect.toArray $ Pipes.Stream.withEOS (Pipes.Construct.eachArray objs) >-> Pipes.CSV.stringify >-> Pipes.Stream.unEOS
+      csv' <- map fold $ Pipes.Collect.toArray $ Pipes.Stream.withEOS (Pipes.Construct.eachArray objs) >-/-> Pipes.CSV.stringify >-> Pipes.Stream.unEOS
       csv' `shouldEqual` csv
     describe "parse" do
       it "parses csv" do
@@ -58,7 +59,7 @@ spec =
           $ Pipes.toListM
           $ Pipes.Stream.withEOS (yield csv)
               >-> Pipes.Stream.inEOS (Pipes.Buffer.fromString UTF8)
-              >-> Pipes.CSV.parse
+              >-/-> Pipes.CSV.parse
               >-> Pipes.Stream.unEOS
 
         rows `shouldEqual`
@@ -82,7 +83,7 @@ spec =
           rows <-
             Pipes.Collect.toArray
               $ Pipes.Stream.withEOS (Pipes.Construct.eachArray bufs)
-                  >-> Pipes.CSV.parse @(id :: Int)
+                  >-/-> Pipes.CSV.parse @(id :: Int)
                   >-> Pipes.Stream.unEOS
 
           rows `shouldEqual` ((\id -> { id }) <$> nums)
