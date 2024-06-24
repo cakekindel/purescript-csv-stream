@@ -1,6 +1,6 @@
 {
   "name": "purescript-csv-stream",
-  "version": "v2.2.1",
+  "version": "v2.3.0",
   "type": "module",
   "dependencies": {
     "csv-parse": "^5.5.5",
